@@ -24,7 +24,7 @@ graph TD
     OrderSvc -->|Trigger Order / Shipping Email| NotifSvc
     VendSvc -->|Trigger Status Email| NotifSvc
 
-    NotifSvc -->|@Async JavaMailSender| SMTP[✉️ SMTP Server - Gmail / Brevo / SendGrid / SES]
+    NotifSvc -->|"Async JavaMailSender"| SMTP[✉️ SMTP Server - Gmail / Brevo / SendGrid / SES]
     SMTP -->|Deliver HTML Email| UserMail[📧 Customer / Vendor Inbox]
     
     AuthSvc -->|Read/Write| MongoAuth[(🍃 MongoDB - auth_db)]
@@ -566,3 +566,4 @@ npm run dev
 ```
 
 Visit the application live at `http://localhost:3002`.
+
