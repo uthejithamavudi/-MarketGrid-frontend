@@ -1,12 +1,12 @@
 /**
  * MarketGrid — Central API Client
  *
- * Wraps all fetch calls to the Spring Boot API Gateway (localhost:8080).
+ * Wraps all fetch calls to the Spring Boot API Gateway (https://marketgrid-backend.onrender.com).
  * Automatically attaches JWT Bearer token from localStorage.
  * Exports a helper to detect whether the backend is reachable.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_SPRING_BOOT_API_URL || 'http://localhost:8080';
+const BASE_URL = process.env.NEXT_PUBLIC_SPRING_BOOT_API_URL || 'https://marketgrid-backend.onrender.com';
 const TOKEN_KEY = 'mg_jwt_token';
 
 /** Retrieve stored JWT from localStorage (safe for SSR). */

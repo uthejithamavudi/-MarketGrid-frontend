@@ -175,7 +175,7 @@ function VerifyOtpContent() {
               This page is wired with <code className="bg-stone-800 px-1 py-0.5 rounded text-amber-300">lib/authService.ts</code>. When your Spring Boot backend with <code className="bg-stone-800 px-1 py-0.5 rounded text-amber-300">spring-boot-starter-mail</code> is running, set your API base URL in <code className="bg-stone-800 px-1 py-0.5 rounded text-amber-300">.env.local</code>:
             </p>
             <pre className="bg-stone-900 p-2.5 rounded font-mono text-[10px] text-emerald-400 overflow-x-auto">
-{`NEXT_PUBLIC_SPRING_BOOT_API_URL=http://localhost:8080
+{`NEXT_PUBLIC_SPRING_BOOT_API_URL=https://marketgrid-backend.onrender.com
 
 // Spring Boot Mail REST Controller Endpoints:
 POST /api/v1/auth/send-otp   { email, role, purpose }

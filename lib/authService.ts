@@ -31,7 +31,7 @@ export interface AuthApiResponse {
   token?: string;
 }
 
-const SPRING_BOOT_BASE_URL = process.env.NEXT_PUBLIC_SPRING_BOOT_API_URL || 'http://localhost:8080';
+const SPRING_BOOT_BASE_URL = process.env.NEXT_PUBLIC_SPRING_BOOT_API_URL || 'https://marketgrid-backend.onrender.com';
 
 /**
  * Sends an OTP to the user's email via Spring Boot Backend (JavaMailSender / SMTP).
@@ -48,22 +48,17 @@ export async function sendOtpApi(data: SendOtpRequest): Promise<AuthApiResponse>
     if (response.ok) {
       const resData = await response.json();
       return { success: true, message: resData.message || 'OTP sent successfully to email.' };
+    } else {
+      const errData = await response.json().catch(() => ({}));
+      return { success: false, message: errData.message || `Backend Error: ${response.status} ${response.statusText}` };
     }
-  } catch (error) {
-    console.info('Spring Boot Mail API not connected yet. Running in Frontend Demo Mode with Spring Boot Mail readiness.', error);
+  } catch (error: any) {
+    return { success: false, message: `Failed to connect to backend: ${error.message}` };
   }
-
-  // Fallback demo response for seamless testing before backend SMTP keys are configured
-  return {
-    success: true,
-    message: `[Demo Mode] OTP code generated & simulated via Spring Boot Mail to ${data.email}`,
-    demoOtp: '123456',
-  };
 }
 
 /**
  * Verifies an OTP code via Spring Boot Backend.
- * Falls back gracefully to demo mode (accepts '123456' or any 6-digit code in demo).
  */
 export async function verifyOtpApi(data: VerifyOtpRequest): Promise<AuthApiResponse> {
   try {
@@ -78,25 +73,11 @@ export async function verifyOtpApi(data: VerifyOtpRequest): Promise<AuthApiRespo
       return { success: true, message: resData.message || 'OTP verified successfully.', token: resData.token };
     } else {
       const errData = await response.json().catch(() => ({}));
-      return { success: false, message: errData.message || 'Invalid or expired OTP code.' };
+      return { success: false, message: errData.message || `Backend Error: ${response.status} ${response.statusText}` };
     }
-  } catch (error) {
-    console.info('Spring Boot API not connected yet. Verifying in Frontend Demo Mode.', error);
+  } catch (error: any) {
+    return { success: false, message: `Failed to connect to backend: ${error.message}` };
   }
-
-  // Fallback demo verification logic
-  if (data.otpCode === '123456' || data.otpCode.length === 6) {
-    return {
-      success: true,
-      message: 'OTP verified successfully! Welcome to MarketGrid.',
-      token: `demo-jwt-token-${Date.now()}`,
-    };
-  }
-
-  return {
-    success: false,
-    message: 'Invalid OTP code. Please enter valid 6 digits (Demo code: 123456).',
-  };
 }
 
 /**
