@@ -1,0 +1,16 @@
+# MarketGrid Search Engine Governance
+User-agent: *
+Allow: /
+Allow: /products
+Allow: /categories
+Allow: /vendors
+Allow: /about
+Allow: /contact
+
+# Private Portal Protection (Checklist Item 9)
+Disallow: /customer/
+Disallow: /vendor/
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://marketgrid.io/sitemap.xml

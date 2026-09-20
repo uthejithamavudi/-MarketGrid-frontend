@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-cormorant: 'Cormorant Garamond', Georgia, serif;
+  --font-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --bg-cream: #FDFBF7;
+  --text-obsidian: #121212;
+}
+
+body {
+  background-color: var(--bg-cream);
+  color: var(--text-obsidian);
+  font-family: var(--font-jakarta);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Custom Editorial Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F4F0EA;
+}
+::-webkit-scrollbar-thumb {
+  background: #C9BFB2;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A39787;
+}
+
+/* Image transition utility */
+.img-zoom {
+  transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.group:hover .img-zoom {
+  transform: scale(1.05);
+}
+
+/* Glass & Border Utilities */
+.editorial-border {
+  border-color: rgba(38, 34, 29, 0.08);
+}
+.editorial-card {
+  background-color: #FAF8F5;
+  border: 1px solid rgba(38, 34, 29, 0.06);
+  transition: all 0.3s ease;
+}
+.editorial-card:hover {
+  border-color: rgba(38, 34, 29, 0.18);
+}
+
+/* Typography Headings */
+h1, h2, h3, .font-editorial {
+  font-family: var(--font-cormorant);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
