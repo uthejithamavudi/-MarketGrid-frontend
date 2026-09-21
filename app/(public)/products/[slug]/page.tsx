@@ -23,6 +23,24 @@ export default function ProductDetailPage() {
   );
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews' | 'seller'>('desc');
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '', name: 'Guest' });
+  const [submittedReviews, setSubmittedReviews] = useState<{name: string, rating: number, comment: string, date: string}[]>([]);
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (reviewForm.comment.trim() === '') return;
+    
+    // In a real app, this would be a POST to /api/v1/reviews
+    const newReview = {
+      name: reviewForm.name,
+      rating: reviewForm.rating,
+      comment: reviewForm.comment,
+      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    };
+    
+    setSubmittedReviews([newReview, ...submittedReviews]);
+    setReviewForm({ rating: 5, comment: '', name: 'Guest' });
+  };
 
   const wishlisted = product ? isWishlisted(product.id) : false;
   const relatedProducts = product
@@ -305,11 +323,57 @@ export default function ProductDetailPage() {
                   <div className="flex text-accent-amber">
                     {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
                   </div>
-                  <p className="text-xs text-stone-500 font-light mt-0.5">Based on {product.reviewCount} verified buyer ratings</p>
+                  <p className="text-xs text-stone-500 font-light mt-0.5">Based on {product.reviewCount + submittedReviews.length} verified buyer ratings</p>
                 </div>
               </div>
 
+              {/* Submit Review Form */}
+              <form onSubmit={handleReviewSubmit} className="p-4 bg-cream-100/70 rounded border border-stone-200 space-y-4">
+                <h4 className="font-semibold uppercase tracking-editorial text-xs text-obsidian-400">Leave a Review</h4>
+                <div>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">Rating</label>
+                  <select 
+                    value={reviewForm.rating} 
+                    onChange={(e) => setReviewForm({...reviewForm, rating: Number(e.target.value)})}
+                    className="w-full sm:w-auto bg-cream-50 p-2 rounded border border-stone-300 text-xs"
+                  >
+                    {[5, 4, 3, 2, 1].map(num => (
+                      <option key={num} value={num}>{num} Stars</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">Your Review</label>
+                  <textarea 
+                    required
+                    rows={3}
+                    placeholder="Tell others what you think about this product..."
+                    value={reviewForm.comment}
+                    onChange={(e) => setReviewForm({...reviewForm, comment: e.target.value})}
+                    className="w-full bg-cream-50 p-3 rounded border border-stone-300 text-xs focus:outline-none focus:border-obsidian-400"
+                  />
+                </div>
+                <button type="submit" className="bg-obsidian-400 hover:bg-obsidian-300 text-cream-50 px-6 py-2 rounded text-xs font-bold uppercase tracking-wide transition-colors">
+                  Submit Review
+                </button>
+              </form>
+
+              {/* Reviews List */}
               <div className="space-y-4 text-xs">
+                {submittedReviews.map((rev, idx) => (
+                  <div key={idx} className="p-4 bg-cream-50 rounded border border-stone-200 space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-obsidian-400">{rev.name}</span>
+                      <span className="text-stone-400">{rev.date}</span>
+                    </div>
+                    <div className="flex text-accent-amber">
+                      {[...Array(rev.rating)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
+                    </div>
+                    <p className="text-stone-600 font-light">"{rev.comment}"</p>
+                  </div>
+                ))}
+                
+                {/* Default mock review */}
                 <div className="p-4 bg-cream-50 rounded border border-stone-200 space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="font-semibold text-obsidian-400">Vikram S.</span>

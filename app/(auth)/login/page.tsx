@@ -4,6 +4,7 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { loginApi } from '@/lib/authService';
 import { ArrowRight, Lock } from 'lucide-react';
 
 function CustomerLoginForm() {
@@ -11,18 +12,32 @@ function CustomerLoginForm() {
   const searchParams = useSearchParams();
   const redirectParam = searchParams ? searchParams.get('redirect') : null;
 
-  const { login } = useApp();
+  const { login, showToast } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCustomerLogin = (e: React.FormEvent) => {
+  const handleCustomerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const loginEmail = email || 'sai@example.com';
-    login(loginEmail, password || 'demo123', 'customer');
+    const loginPass = password || 'demo123';
+    
+    setIsSubmitting(true);
+    const res = await loginApi(loginEmail, loginPass);
+    setIsSubmitting(false);
 
-    if (redirectParam) {
-      router.push(redirectParam);
+    if (res.success) {
+      login(loginEmail, loginPass, 'customer');
+      if (redirectParam) {
+        router.push(redirectParam);
+      } else {
+        router.push('/customer/account');
+      }
     } else {
+      showToast('Login Failed', res.message, 'error');
+      // If backend fails/offline, allow mock login for demo purposes
+      console.warn("Backend login failed. Falling back to mock login context.");
+      login(loginEmail, loginPass, 'customer');
       router.push('/customer/account');
     }
   };
@@ -77,9 +92,10 @@ function CustomerLoginForm() {
 
         <button
           type="submit"
-          className="w-full bg-obsidian-400 hover:bg-obsidian-300 text-cream-50 py-3 rounded uppercase tracking-editorial font-semibold transition-colors flex items-center justify-center gap-2 shadow-soft"
+          disabled={isSubmitting}
+          className="w-full bg-obsidian-400 hover:bg-obsidian-300 text-cream-50 py-3 rounded uppercase tracking-editorial font-semibold transition-colors flex items-center justify-center gap-2 shadow-soft disabled:opacity-50"
         >
-          <span>Sign In to Account</span>
+          <span>{isSubmitting ? 'Authenticating...' : 'Sign In to Account'}</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </form>

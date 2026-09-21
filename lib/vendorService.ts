@@ -2,12 +2,11 @@
  * Vendor Service
  *
  * Fetches vendor data from the Spring Boot vendor-service
- * via the API Gateway. Falls back to mock data if the backend is offline.
+ * via the API Gateway. Throws on failure — no mock fallback.
  */
 
 import { apiFetch } from './api';
 import { Vendor } from './types';
-import { MOCK_VENDORS } from './mockData';
 
 // ---------------------------------------------------------------------------
 // Response shape mapper (backend → frontend type)
@@ -49,38 +48,31 @@ function mapVendor(raw: any): Vendor {
 }
 
 // ---------------------------------------------------------------------------
-// API functions with graceful fallback
+// API functions — no mock fallback
 // ---------------------------------------------------------------------------
 
 /**
- * Fetch all vendors. Falls back to MOCK_VENDORS if backend is unreachable.
+ * Fetch all vendors from the backend.
+ * Throws if backend is unreachable.
  */
 export async function fetchVendors(): Promise<Vendor[]> {
-  try {
-    const data = await apiFetch<any>('/api/v1/vendors');
-    const list = Array.isArray(data) ? data : data?.content ?? data?.vendors ?? [];
-    return list.map(mapVendor);
-  } catch (error) {
-    console.info('[vendorService] Backend unavailable, using mock vendors.', error);
-    return MOCK_VENDORS;
-  }
+  const data = await apiFetch<any>('/api/v1/vendors', { skipAuth: true });
+  const list = Array.isArray(data) ? data : data?.content ?? data?.vendors ?? [];
+  return list.map(mapVendor);
 }
 
 /**
- * Fetch a single vendor by slug. Falls back to matching mock vendor.
+ * Fetch a single vendor by slug.
+ * Throws if backend is unreachable or vendor not found.
  */
 export async function fetchVendorBySlug(slug: string): Promise<Vendor | null> {
-  try {
-    const data = await apiFetch<any>(`/api/v1/vendors/slug/${slug}`);
-    return mapVendor(data);
-  } catch (error) {
-    console.info(`[vendorService] Backend unavailable for slug "${slug}", using mock.`, error);
-    return MOCK_VENDORS.find((v) => v.slug === slug) ?? MOCK_VENDORS[0];
-  }
+  const data = await apiFetch<any>(`/api/v1/vendors/slug/${slug}`, { skipAuth: true });
+  return mapVendor(data);
 }
 
 /**
- * Register a new vendor application. Falls back to local mock state if backend is down.
+ * Register a new vendor application.
+ * Returns failure status if backend is down.
  */
 export async function registerVendorApi(vendorData: Partial<Vendor>): Promise<{ success: boolean; message: string }> {
   try {
@@ -89,14 +81,14 @@ export async function registerVendorApi(vendorData: Partial<Vendor>): Promise<{ 
       body: JSON.stringify(vendorData),
     });
     return { success: true, message: 'Vendor application submitted to MarketGrid.' };
-  } catch (error) {
-    console.info('[vendorService] Backend unavailable for vendor registration, using local state.', error);
-    return { success: true, message: '[Offline Mode] Vendor application saved locally pending backend sync.' };
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Failed to submit vendor application. Backend unavailable.' };
   }
 }
 
 /**
  * Approve or reject a vendor (admin action).
+ * Returns failure status if backend is down.
  */
 export async function updateVendorStatusApi(
   vendorId: string,
@@ -109,7 +101,7 @@ export async function updateVendorStatusApi(
     });
     return { success: true };
   } catch (error) {
-    console.info('[vendorService] Backend unavailable for vendor status update.', error);
-    return { success: true }; // allow UI to update locally
+    console.error('[vendorService] Status update failed:', error);
+    return { success: false };
   }
 }

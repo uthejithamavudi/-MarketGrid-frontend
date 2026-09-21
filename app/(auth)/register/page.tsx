@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { registerVendorApi } from '@/lib/authService';
 import {
   Building2,
   UserCheck,
@@ -39,6 +40,7 @@ function RegisterContent() {
   const [gstin, setGstin] = useState('');
   const [panNumber, setPanNumber] = useState('');
   const [aadhaarNumber, setAadhaarNumber] = useState('');
+  const [vendorPassword, setVendorPassword] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -77,13 +79,14 @@ function RegisterContent() {
   };
 
   // Vendor Registration -> Legal Amazon-Style Onboarding Submission
-  const handleVendorSubmit = (e: React.FormEvent) => {
+  const handleVendorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    registerVendor({
+    const vendorPayload = {
       name: vendorName || 'Artisanal Craft Studio',
       ownerName: ownerName || 'Studio Founder',
       ownerEmail: ownerEmail || 'vendor@techverse.io',
+      password: vendorPassword,
       phone: phone || '+91 98765 43210',
       businessType,
       gstin: gstin || '36AAAAA0000A1Z5',
@@ -99,9 +102,23 @@ function RegisterContent() {
       ifscCode: ifscCode || 'HDFC0000123',
       tagline: tagline || 'Handcrafted specialty goods',
       description: description || 'Artisanal product creator registered for MarketGrid verification.',
-    });
+    };
 
-    setSubmittedVendor(true);
+    // 1. Send to Backend
+    const res = await registerVendorApi(vendorPayload);
+    
+    if (res.success) {
+      showToast('Registration Received', res.message, 'success');
+      // 2. Also register in frontend state for UI mock fallback if needed
+      registerVendor(vendorPayload);
+      setSubmittedVendor(true);
+    } else {
+      showToast('Registration Error', res.message, 'error');
+      // If backend is entirely missing this endpoint, fallback to UI state so it doesn't hard block
+      console.warn("Backend failed, falling back to UI state only.");
+      registerVendor(vendorPayload);
+      setSubmittedVendor(true);
+    }
   };
 
   // VENDOR PENDING REVIEW CONFIRMATION SCREEN (2-3 Business Days)
@@ -399,6 +416,18 @@ function RegisterContent() {
                     onChange={(e) => setOwnerEmail(e.target.value)}
                     placeholder="vendor@techverse.io"
                     className="w-full bg-cream-50 p-2.5 rounded border border-stone-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold uppercase text-stone-600 mb-1">Login Password *</label>
+                  <input
+                    type="password"
+                    required
+                    value={vendorPassword}
+                    onChange={(e) => setVendorPassword(e.target.value)}
+                    placeholder="Set account password"
+                    className="w-full bg-cream-50 p-2.5 rounded border border-stone-300 font-mono text-[11px]"
                   />
                 </div>
               </div>

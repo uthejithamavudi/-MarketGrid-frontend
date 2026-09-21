@@ -45,6 +45,17 @@ export default function AddProductPage() {
     imageUrl: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=1000&q=80'
   });
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm(prev => ({ ...prev, imageUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     addProduct({
@@ -159,12 +170,30 @@ export default function AddProductPage() {
             02 MEDIA & PHOTOGRAPHY
           </h3>
           
-          <div className="border-2 border-dashed border-stone-300 rounded-lg p-8 text-center space-y-3 bg-stone-100/50 hover:bg-stone-100 transition-colors">
-            <Upload className="w-10 h-10 text-stone-400 mx-auto" />
-            <div className="space-y-1">
-              <p className="font-semibold text-obsidian-400">Drag & Drop Product Photography</p>
-              <p className="text-[11px] text-stone-500 font-light">PNG, JPG, WEBP up to 10MB (High Resolution Studio Shot Recommended)</p>
-            </div>
+          <div className="relative border-2 border-dashed border-stone-300 rounded-lg p-8 text-center space-y-3 bg-stone-100/50 hover:bg-stone-100 transition-colors group overflow-hidden">
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleFileUpload}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" 
+              title="Upload Product Image"
+            />
+            {form.imageUrl.startsWith('data:image') || !form.imageUrl.includes('unsplash') ? (
+              <div className="absolute inset-0 z-10 bg-stone-200">
+                <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-obsidian-400/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <p className="text-cream-50 font-bold uppercase tracking-wide text-sm">Click to Change Image</p>
+                </div>
+              </div>
+            ) : (
+              <div className="relative z-10 pointer-events-none">
+                <Upload className="w-10 h-10 text-stone-400 mx-auto" />
+                <div className="space-y-1 mt-3">
+                  <p className="font-semibold text-obsidian-400">Click or Drag & Drop Product Photography</p>
+                  <p className="text-[11px] text-stone-500 font-light">PNG, JPG, WEBP up to 10MB (High Resolution Studio Shot Recommended)</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

@@ -2,13 +2,11 @@
  * Order Service
  *
  * Fetches order data from the Spring Boot order-service
- * via the API Gateway. Falls back to mock data if the backend is offline
- * or if the user is not authenticated.
+ * via the API Gateway. Throws on failure — no mock fallback.
  */
 
 import { apiFetch } from './api';
 import { Order } from './types';
-import { MOCK_ORDERS } from './mockData';
 
 // ---------------------------------------------------------------------------
 // Response shape mapper (backend → frontend type)
@@ -53,41 +51,32 @@ function mapOrder(raw: any): Order {
 }
 
 // ---------------------------------------------------------------------------
-// API functions with graceful fallback
+// API functions — no mock fallback
 // ---------------------------------------------------------------------------
 
 /**
  * Fetch orders for the authenticated customer.
- * Falls back to MOCK_ORDERS if backend is unreachable.
+ * Throws if backend is unreachable.
  */
 export async function fetchMyOrders(): Promise<Order[]> {
-  try {
-    const data = await apiFetch<any>('/api/v1/orders/my-orders');
-    const list = Array.isArray(data) ? data : data?.content ?? data?.orders ?? [];
-    return list.map(mapOrder);
-  } catch (error) {
-    console.info('[orderService] Backend unavailable, using mock orders.', error);
-    return MOCK_ORDERS;
-  }
+  const data = await apiFetch<any>('/api/v1/orders/my-orders');
+  const list = Array.isArray(data) ? data : data?.content ?? data?.orders ?? [];
+  return list.map(mapOrder);
 }
 
 /**
  * Fetch all orders (vendor or admin view).
+ * Throws if backend is unreachable.
  */
 export async function fetchAllOrders(): Promise<Order[]> {
-  try {
-    const data = await apiFetch<any>('/api/v1/orders');
-    const list = Array.isArray(data) ? data : data?.content ?? data?.orders ?? [];
-    return list.map(mapOrder);
-  } catch (error) {
-    console.info('[orderService] Backend unavailable for all orders, using mock.', error);
-    return MOCK_ORDERS;
-  }
+  const data = await apiFetch<any>('/api/v1/orders');
+  const list = Array.isArray(data) ? data : data?.content ?? data?.orders ?? [];
+  return list.map(mapOrder);
 }
 
 /**
  * Update the status of a sub-order (vendor fulfillment action).
- * Optimistic update — returns success even if backend is offline so UI can update locally.
+ * Returns failure status if backend is down.
  */
 export async function updateSubOrderStatusApi(
   orderId: string,
@@ -101,7 +90,7 @@ export async function updateSubOrderStatusApi(
     });
     return { success: true };
   } catch (error) {
-    console.info('[orderService] Backend unavailable for status update. Updating UI locally.', error);
-    return { success: true }; // allow optimistic UI update
+    console.error('[orderService] Status update failed:', error);
+    return { success: false };
   }
 }

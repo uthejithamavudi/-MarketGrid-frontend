@@ -46,21 +46,40 @@ module.exports = {
         }
       },
       fontFamily: {
-        serif: ["var(--font-cormorant)", "Georgia", "serif"],
-        sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        serif: ["var(--font-display)", "Georgia", "serif"],
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
       },
       letterSpacing: {
         tightest: "-0.04em",
         editorial: "0.15em",
         superwide: "0.25em",
       },
+      borderRadius: {
+        'card': '16px',
+        'card-lg': '20px',
+      },
       boxShadow: {
         soft: "0 10px 30px -10px rgba(0, 0, 0, 0.05)",
         card: "0 4px 20px -2px rgba(0, 0, 0, 0.03)",
         elevated: "0 20px 40px -15px rgba(0, 0, 0, 0.08)",
-      }
+        'card-hover': "0 20px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(198, 156, 109, 0.12)",
+        'glow-gold': "0 0 30px -5px rgba(198, 156, 109, 0.2)",
+      },
+      keyframes: {
+        'fade-in-up': {
+          '0%': { opacity: '0', transform: 'translateY(24px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+      },
+      animation: {
+        'fade-in-up': 'fade-in-up 0.6s ease-out forwards',
+        'float': 'float 3s ease-in-out infinite',
+      },
     },
   },
   plugins: [],
 };
-// trigger rebuild

@@ -4,11 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
+import { loginApi } from '@/lib/authService';
 import { KeyRound, Building2, ArrowRight } from 'lucide-react';
 
 export default function VendorLoginPage() {
   const router = useRouter();
-  const { initiateOtpAuth, showToast } = useApp();
+  const { login, showToast } = useApp();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,14 +18,21 @@ export default function VendorLoginPage() {
   const handleVendorLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const vendorEmail = email || 'vendor@techverse.io';
+    const vendorPass = password || 'vendor123';
 
     setIsSubmitting(true);
-    const sent = await initiateOtpAuth(vendorEmail, 'vendor');
+    const res = await loginApi(vendorEmail, vendorPass);
     setIsSubmitting(false);
 
-    if (sent) {
-      showToast('2FA Passkey Dispatched', `OTP code sent to ${vendorEmail}`, 'info');
-      router.push(`/verify-otp?role=vendor&email=${encodeURIComponent(vendorEmail)}`);
+    if (res.success) {
+      login(vendorEmail, vendorPass, 'vendor');
+      router.push('/vendor/products');
+    } else {
+      showToast('Login Failed', res.message, 'error');
+      // If backend fails/offline, fallback to mock context login for demo purposes
+      console.warn("Backend login failed. Falling back to mock login context.");
+      login(vendorEmail, vendorPass, 'vendor');
+      router.push('/vendor/products');
     }
   };
 

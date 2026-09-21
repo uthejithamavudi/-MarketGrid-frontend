@@ -33,15 +33,22 @@ interface FetchOptions extends RequestInit {
  * Core fetch wrapper.
  * - Prepends BASE_URL
  * - Injects Authorization header from stored JWT
+ * - Only sends Content-Type on requests with a body (POST/PUT/PATCH)
+ * - Includes a timeout to handle cold-starting backends (Render free tier)
  * - Throws on non-2xx responses (caller should catch)
  */
 export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { skipAuth, ...fetchOptions } = options;
+  const method = (fetchOptions.method ?? 'GET').toUpperCase();
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(fetchOptions.headers as Record<string, string>),
   };
+
+  // Only set Content-Type for requests that carry a body
+  if (method !== 'GET' && method !== 'HEAD') {
+    headers['Content-Type'] = headers['Content-Type'] ?? 'application/json';
+  }
 
   if (!skipAuth) {
     const token = getStoredToken();
@@ -50,17 +57,26 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
     }
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...fetchOptions,
-    headers,
-  });
+  // Timeout: abort if backend doesn't respond within 8 seconds
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(errorBody?.message || `API error ${response.status}`);
+  try {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      ...fetchOptions,
+      headers,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorBody?.message || `API error ${response.status}`);
+    }
+
+    return response.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return response.json() as Promise<T>;
 }
 
 /**

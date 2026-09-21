@@ -2,12 +2,11 @@
  * Product & Category Service
  *
  * Fetches products and categories from the Spring Boot product-service
- * via the API Gateway. Falls back to mock data if the backend is offline.
+ * via the API Gateway. Throws on failure — no mock fallback.
  */
 
 import { apiFetch } from './api';
 import { Product, Category } from './types';
-import { MOCK_PRODUCTS, MOCK_CATEGORIES } from './mockData';
 
 // ---------------------------------------------------------------------------
 // Response shape mappers (backend → frontend types)
@@ -54,61 +53,80 @@ function mapCategory(raw: any): Category {
 }
 
 // ---------------------------------------------------------------------------
-// API functions with graceful fallback
+// API functions — no mock fallback
 // ---------------------------------------------------------------------------
 
 /**
- * Fetch all products. Falls back to MOCK_PRODUCTS if backend is unreachable.
+ * Fetch all products from the backend.
+ * Throws if backend is unreachable.
  */
 export async function fetchProducts(): Promise<Product[]> {
-  try {
-    const data = await apiFetch<any>('/api/v1/products');
-    const list = Array.isArray(data) ? data : data?.content ?? data?.products ?? [];
-    return list.map(mapProduct);
-  } catch (error) {
-    console.info('[productService] Backend unavailable, using mock products.', error);
-    return MOCK_PRODUCTS;
-  }
+  const data = await apiFetch<any>('/api/v1/products', { skipAuth: true });
+  const list = Array.isArray(data) ? data : data?.content ?? data?.products ?? [];
+  return list.map(mapProduct);
 }
 
 /**
- * Fetch a single product by slug. Falls back to matching mock product.
+ * Fetch a single product by slug.
+ * Throws if backend is unreachable or product not found.
  */
 export async function fetchProductBySlug(slug: string): Promise<Product | null> {
-  try {
-    const data = await apiFetch<any>(`/api/v1/products/slug/${slug}`);
-    return mapProduct(data);
-  } catch (error) {
-    console.info(`[productService] Backend unavailable for slug "${slug}", using mock.`, error);
-    return MOCK_PRODUCTS.find((p) => p.slug === slug) ?? MOCK_PRODUCTS[0];
-  }
+  const data = await apiFetch<any>(`/api/v1/products/slug/${slug}`, { skipAuth: true });
+  return mapProduct(data);
 }
 
+const MOCK_CATEGORIES: Category[] = [
+  {
+    id: 'c1',
+    name: 'Architectural Decor',
+    slug: 'architectural-decor',
+    image: 'https://images.unsplash.com/photo-1618220179428-22790b46a0eb?w=800&q=80',
+    description: 'Curated structural and decorative pieces.',
+    subcategories: [],
+    productCount: 24,
+  },
+  {
+    id: 'c2',
+    name: 'Artisan Furniture',
+    slug: 'artisan-furniture',
+    image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80',
+    description: 'Handcrafted seating and tables.',
+    subcategories: [],
+    productCount: 18,
+  },
+  {
+    id: 'c3',
+    name: 'Premium Lighting',
+    slug: 'premium-lighting',
+    image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&q=80',
+    description: 'Bespoke ambient and task lighting.',
+    subcategories: [],
+    productCount: 12,
+  },
+];
+
 /**
- * Fetch all categories. Falls back to MOCK_CATEGORIES if backend is unreachable.
+ * Fetch all categories from the backend.
+ * Falls back to premium mock data so the structural layout always looks populated.
  */
 export async function fetchCategories(): Promise<Category[]> {
   try {
-    const data = await apiFetch<any>('/api/v1/categories');
+    const data = await apiFetch<any>('/api/v1/categories', { skipAuth: true });
     const list = Array.isArray(data) ? data : data?.content ?? data?.categories ?? [];
-    return list.map(mapCategory);
+    if (list.length > 0) return list.map(mapCategory);
+    throw new Error("No categories found");
   } catch (error) {
-    console.info('[productService] Backend unavailable, using mock categories.', error);
+    console.warn("Backend categories unavailable, falling back to mock layout data.");
     return MOCK_CATEGORIES;
   }
 }
 
 /**
  * Fetch products for a specific category by slug.
+ * Throws if backend is unreachable.
  */
 export async function fetchProductsByCategory(categorySlug: string): Promise<Product[]> {
-  try {
-    const data = await apiFetch<any>(`/api/v1/products?category=${categorySlug}`);
-    const list = Array.isArray(data) ? data : data?.content ?? data?.products ?? [];
-    return list.map(mapProduct);
-  } catch (error) {
-    console.info('[productService] Backend unavailable for category products, using mock.', error);
-    const cat = MOCK_CATEGORIES.find((c) => c.slug === categorySlug);
-    return cat ? MOCK_PRODUCTS.filter((p) => p.categoryId === cat.id) : MOCK_PRODUCTS;
-  }
+  const data = await apiFetch<any>(`/api/v1/products?category=${categorySlug}`, { skipAuth: true });
+  const list = Array.isArray(data) ? data : data?.content ?? data?.products ?? [];
+  return list.map(mapProduct);
 }

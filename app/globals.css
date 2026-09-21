@@ -1,12 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --font-cormorant: 'Cormorant Garamond', Georgia, serif;
-  --font-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'Satoshi', 'Inter', system-ui, sans-serif;
   --bg-cream: #FDFBF7;
   --text-obsidian: #121212;
 }
@@ -14,7 +15,7 @@
 body {
   background-color: var(--bg-cream);
   color: var(--text-obsidian);
-  font-family: var(--font-jakarta);
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
@@ -50,15 +51,76 @@ body {
 .editorial-card {
   background-color: #FAF8F5;
   border: 1px solid rgba(38, 34, 29, 0.06);
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 .editorial-card:hover {
-  border-color: rgba(38, 34, 29, 0.18);
+  border-color: rgba(38, 34, 29, 0.22);
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.08);
 }
 
-/* Typography Headings */
-h1, h2, h3, .font-editorial {
-  font-family: var(--font-cormorant);
+/* Premium Card Border Glow Effect */
+.card-premium {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #FAF8F5;
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.card-premium::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 40%, rgba(198, 156, 109, 0.3) 50%, transparent 60%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.card-premium:hover::before {
+  opacity: 1;
+}
+.card-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(198, 156, 109, 0.12);
+}
+
+/* Rounded border accent cards — inspired by Servies reference */
+.card-accent-border {
+  border: 2px solid transparent;
+  border-radius: 20px;
+  background-clip: padding-box;
+  transition: all 0.4s ease;
+}
+.card-accent-border:hover {
+  border-color: #C69C6D;
+}
+
+/* Section divider animation line */
+.section-divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #C9BFB2 20%, #A39787 50%, #C9BFB2 80%, transparent);
+  opacity: 0.5;
+}
+
+/* Typography Headings — Instrument Serif */
+h1, h2, h3, .font-editorial, .font-serif {
+  font-family: var(--font-display);
+}
+
+/* Loading skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #F2EEE9 25%, #E4DED5 50%, #F2EEE9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
 }
 
 @keyframes fadeIn {
@@ -66,6 +128,29 @@ h1, h2, h3, .font-editorial {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }

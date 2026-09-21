@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, CartItem, UserRole, Order, ToastMessage, Vendor, Category } from '@/lib/types';
-import { MOCK_PRODUCTS, MOCK_ORDERS, MOCK_VENDORS, MOCK_CATEGORIES } from '@/lib/mockData';
 import { sendOtpApi, verifyOtpApi, sendVendorStatusEmailApi } from '@/lib/authService';
 import { fetchProducts, fetchCategories } from '@/lib/productService';
 import { fetchVendors, registerVendorApi, updateVendorStatusApi } from '@/lib/vendorService';
@@ -66,6 +65,9 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   toggleProductStatus: (productId: string) => void;
   isLoadingData: boolean;
+  hasError: boolean;
+  errorMessage: string;
+  retryLoadData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -88,6 +90,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // ---------------------------------------------------------------------------
   // Toast helpers (defined early so they can be used in effects below)
@@ -110,6 +114,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   // ---------------------------------------------------------------------------
+  // Data loading — fully backend-dependent, no mock fallback
+  // ---------------------------------------------------------------------------
+
+  const loadInitialData = useCallback(async () => {
+    setIsLoadingData(true);
+    setHasError(false);
+    setErrorMessage('');
+
+    // Use allSettled so one failing service doesn't block the others
+    const [productsResult, categoriesResult, vendorsResult] = await Promise.allSettled([
+      fetchProducts(),
+      fetchCategories(),
+      fetchVendors(),
+    ]);
+
+    // Handle each result independently
+    if (productsResult.status === 'fulfilled') {
+      setProductsList(productsResult.value);
+    } else {
+      console.warn('[AppContext] Products fetch failed:', productsResult.reason);
+      setProductsList([]);
+    }
+
+    if (categoriesResult.status === 'fulfilled') {
+      setCategoriesList(categoriesResult.value);
+    } else {
+      console.warn('[AppContext] Categories fetch failed:', categoriesResult.reason);
+      setCategoriesList([]);
+    }
+
+    if (vendorsResult.status === 'fulfilled') {
+      setVendorsList(vendorsResult.value);
+    } else {
+      console.warn('[AppContext] Vendors fetch failed:', vendorsResult.reason);
+      setVendorsList([]);
+    }
+
+    // Only set full error state if ALL three failed
+    const allFailed = productsResult.status === 'rejected'
+      && categoriesResult.status === 'rejected'
+      && vendorsResult.status === 'rejected';
+
+    if (allFailed) {
+      setHasError(true);
+      const firstError = (productsResult as PromiseRejectedResult).reason;
+      setErrorMessage(firstError?.message || 'Unable to connect to MarketGrid backend.');
+    }
+
+    setIsLoadingData(false);
+  }, []);
+
+  const retryLoadData = useCallback(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
+  // ---------------------------------------------------------------------------
   // On mount: restore token from localStorage + load data from backend
   // ---------------------------------------------------------------------------
 
@@ -125,30 +185,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsAuthenticated(true);
     }
 
-    // Load products, categories, vendors from backend (with fallback)
-    const loadInitialData = async () => {
-      setIsLoadingData(true);
-      try {
-        const [products, categories, vendors] = await Promise.all([
-          fetchProducts(),
-          fetchCategories(),
-          fetchVendors(),
-        ]);
-        setProductsList(products);
-        setCategoriesList(categories);
-        setVendorsList(vendors);
-      } catch {
-        // Individual service fallbacks handle their own errors; this is just safety
-        setProductsList(MOCK_PRODUCTS);
-        setCategoriesList(MOCK_CATEGORIES);
-        setVendorsList(MOCK_VENDORS);
-      } finally {
-        setIsLoadingData(false);
-      }
-    };
-
     loadInitialData();
-  }, []);
+  }, [loadInitialData]);
 
   // ---------------------------------------------------------------------------
   // Load orders when user is authenticated
@@ -167,8 +205,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ? await fetchMyOrders()
           : await fetchAllOrders();
         setOrders(loaded);
-      } catch {
-        setOrders(MOCK_ORDERS);
+      } catch (error: any) {
+        console.error('[AppContext] Failed to load orders:', error);
+        setOrders([]);
       }
     };
 
@@ -351,9 +390,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
     // Fire and forget API sync
-    updateSubOrderStatusApi(orderId, vendorId, status).catch((err) =>
-      console.warn('[AppContext] Order status sync failed:', err)
-    );
+    updateSubOrderStatusApi(orderId, vendorId, status).then((res) => {
+      if (!res.success) {
+        showToast('Sync Failed', 'Order status updated locally but failed to sync with backend.', 'warning');
+      }
+    });
     showToast('Fulfillment Updated', `Order status set to ${status}.`, 'success');
   };
 
@@ -396,10 +437,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setVendorsList((prev) => [newVendor, ...prev]);
 
-    // Sync to backend (fire and forget)
-    registerVendorApi(vendorData).catch((err) =>
-      console.warn('[AppContext] Vendor registration sync failed:', err)
-    );
+    // Sync to backend
+    const res = await registerVendorApi(vendorData);
+    if (!res.success) {
+      showToast('Sync Warning', res.message, 'warning');
+    }
 
     showToast('Vendor Application Submitted', 'Review pending (2-3 business days). KYC credentials transmitted.', 'warning');
   };
@@ -523,6 +565,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addProduct,
         toggleProductStatus,
         isLoadingData,
+        hasError,
+        errorMessage,
+        retryLoadData,
       }}
     >
       {children}

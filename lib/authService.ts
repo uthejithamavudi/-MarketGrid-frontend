@@ -106,3 +106,48 @@ export async function sendVendorStatusEmailApi(data: VendorStatusEmailRequest): 
   };
 }
 
+/**
+ * Registers a new vendor via the Spring Boot Backend.
+ */
+export async function registerVendorApi(data: any): Promise<AuthApiResponse> {
+  try {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/v1/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, role: 'VENDOR' }),
+    });
+
+    if (response.ok) {
+      const resData = await response.json().catch(() => ({}));
+      return { success: true, message: resData.message || 'Vendor registration submitted successfully.', token: resData.token };
+    } else {
+      const errData = await response.json().catch(() => ({}));
+      return { success: false, message: errData.message || `Registration Error: ${response.status} ${response.statusText}` };
+    }
+  } catch (error: any) {
+    return { success: false, message: `Failed to connect to backend: ${error.message}` };
+  }
+}
+
+/**
+ * Authenticates a user (Customer/Vendor/Admin) via the Spring Boot Backend.
+ */
+export async function loginApi(email: string, password: string): Promise<AuthApiResponse> {
+  try {
+    const response = await fetch(`${SPRING_BOOT_BASE_URL}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (response.ok) {
+      const resData = await response.json().catch(() => ({}));
+      return { success: true, message: 'Login successful.', token: resData.token };
+    } else {
+      const errData = await response.json().catch(() => ({}));
+      return { success: false, message: errData.message || `Login Error: ${response.status} ${response.statusText}` };
+    }
+  } catch (error: any) {
+    return { success: false, message: `Failed to connect to backend: ${error.message}` };
+  }
+}
